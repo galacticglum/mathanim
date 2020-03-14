@@ -2,7 +2,7 @@
 
 #include <string>
 #include <functional>
-#include <Core.h>
+#include <Common.h>
 
 /**
  * @enum EventType Event.h
@@ -22,7 +22,7 @@ enum class EventType
 enum EventCategory
 {
     None = 0,
-    Application = BIT(0)
+    EventCategoryApplication = BIT(0)
 };
 
 /**

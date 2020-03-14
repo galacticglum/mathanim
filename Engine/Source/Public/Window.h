@@ -5,6 +5,13 @@
 #include <functional>
 #include <Events/Event.h>
 
+#pragma once
+
+#include <Events/Event.h>
+#include <string>
+#include <functional>
+#include <utility>
+
 /**
  * @struct WindowProperties Window.h
  * @brief Generic window properties.
@@ -89,6 +96,13 @@ public:
      * @brief Indicates whether VSync is enabled.
      */
     virtual bool IsVSyncEnabled() const = 0;
+
+    /**
+     * @brief Gets the native window context.
+     * @note The native window context refers to the
+     *		 backend window implementation.
+     */
+    virtual void* GetNativeWindowContext() const = 0;
 
     /**
      * @brief Creates a Window.

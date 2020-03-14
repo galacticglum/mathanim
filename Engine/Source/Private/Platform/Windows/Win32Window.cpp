@@ -2,62 +2,60 @@
 #include <Window.h>
 #include <Logger.h>
 #include <Events/ApplicationEvents.h> 
-#include <glad/glad.h> 
+#include <Platform/OpenGL/OpenGLContext.h> 
 
 static bool s_IsGLFWInitialized = false;
 
 static void GLFWErrorCallback(const int error, const char* description)
 {
-    Logger::Log("Engine", LoggerVerbosity::Error, "GLFW Error ({0}): {1}", error, description);
+    Logger::Log("Graphics", LoggerVerbosity::Error, "GLFW Error ({0}): {1}", error, description);
 }
 
 Window* Window::Create(const WindowProperties& props)
 {
-    return new Win32Windows(props);
+    return new Win32Window(props);
 }
 
-Win32Windows::Win32Windows(const WindowProperties& props) : m_Window(nullptr)
+Win32Window::Win32Window(const WindowProperties& props) : m_Window(nullptr)
 {
-    Win32Windows::Initialize(props);
+    Initialize(props);
 }
 
-Win32Windows::~Win32Windows()
+Win32Window::~Win32Window()
 {
-    Win32Windows::Shutdown();
+    Shutdown();
 }
 
-void Win32Windows::OnUpdate() const
+void Win32Window::OnUpdate() const
 {
     glfwPollEvents();
-    glfwSwapBuffers(m_Window);
+    m_RenderContext->SwapBuffers();
 }
 
-void Win32Windows::ToggleVSync(const bool enabled)
+void Win32Window::ToggleVSync(const bool enabled)
 {
     glfwSwapInterval(enabled ? 1 : 0);
     m_Data.IsVSyncEnabled = enabled;
 }
 
-void Win32Windows::Initialize(const WindowProperties& props)
+void Win32Window::Initialize(const WindowProperties& props)
 {
     m_Data.Title = props.Title;
     m_Data.Width = props.Width;
     m_Data.Height = props.Height;
 
-    Logger::Log("Engine", LoggerVerbosity::Info, "Create window {} ({} x {})", props.Title, props.Width, props.Height);
+    Logger::Log("Graphics", LoggerVerbosity::Info, "Create window \"{}\" ({} x {})", props.Title, props.Width, props.Height);
     if (!s_IsGLFWInitialized)
     {
         const int success = glfwInit();
-        LOG_CATEGORY_ASSERT(success, "Engine", "Could not initialize GLFW!");
+        LOG_CATEGORY_ASSERT(success, "Graphics", "Could not initialize GLFW!");
         glfwSetErrorCallback(GLFWErrorCallback);
         s_IsGLFWInitialized = success;
     }
 
     m_Window = glfwCreateWindow(static_cast<int>(props.Width), static_cast<int>(props.Height), m_Data.Title.c_str(), nullptr, nullptr);
-    glfwMakeContextCurrent(m_Window);
-
-    const int gladStatus = gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress));
-    LOG_CATEGORY_ASSERT(gladStatus, "Engine", "Failed to initialize Glad!")
+    m_RenderContext = new OpenGLContext(m_Window);
+    m_RenderContext->Initialize();
 
     glfwSetWindowUserPointer(m_Window, &m_Data);
     ToggleVSync(true);
@@ -84,7 +82,7 @@ void Win32Windows::Initialize(const WindowProperties& props)
     });
 }
 
-void Win32Windows::Shutdown()
+void Win32Window::Shutdown() const
 {
     glfwDestroyWindow(m_Window);
 }

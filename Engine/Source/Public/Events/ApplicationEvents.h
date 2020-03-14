@@ -38,7 +38,7 @@ public:
 	}
 
 	EVENT_CLASS_TYPE(WindowResized)
-	EVENT_CLASS_CATEGORY(Application)
+	EVENT_CLASS_CATEGORY(EventCategoryApplication)
 private:
 	uint32_t m_Width;
 	uint32_t m_Height;
@@ -54,5 +54,5 @@ public:
 	WindowClosedEvent() = default;
 
 	EVENT_CLASS_TYPE(WindowClosed)
-	EVENT_CLASS_CATEGORY(Application)
+	EVENT_CLASS_CATEGORY(EventCategoryApplication)
 };
