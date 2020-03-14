@@ -86,7 +86,7 @@ public:
 class EventDispather
 {
     template<typename T>
-    using EventHandler = std::function<bool>(T&);
+    using EventHandler = std::function<bool(T&)>; 
 public:
     /**
      * @brief Initializes a new EventDispatcher for the specified @p event.
@@ -101,7 +101,7 @@ public:
      * @param handler The EventHandler<T> to dispatch.
      */
     template<typename T>
-    bool Dispatch(const EventHandler<T> handler)
+    bool Dispatch(EventHandler<T> handler)
     {
         if (m_Event.GetEventType() == T::GetStaticType())
         {
@@ -118,7 +118,7 @@ private:
 /**
  * @brief Stream operator overload for Event.
  */
-inline std::ostream& operator<<(std::ostream& os, const Event& event)
+inline std::ostream& operator <<(std::ostream& stream, const Event& right) 
 {
-    return os << event.ToString();
+    return stream << right.ToString();
 }

@@ -1,9 +1,15 @@
 #include <Platform/Windows/Win32Window.h>
 #include <Window.h>
 #include <Logger.h>
-
+#include <Events/ApplicationEvents.h> 
 #include <glad/glad.h> 
+
 static bool s_IsGLFWInitialized = false;
+
+static void GLFWErrorCallback(const int error, const char* description)
+{
+    Logger::Log("Engine", LoggerVerbosity::Error, "GLFW Error ({0}): {1}", error, description);
+}
 
 Window* Window::Create(const WindowProperties& props)
 {
@@ -43,6 +49,7 @@ void Win32Windows::Initialize(const WindowProperties& props)
     {
         const int success = glfwInit();
         LOG_CATEGORY_ASSERT(success, "Engine", "Could not initialize GLFW!");
+        glfwSetErrorCallback(GLFWErrorCallback);
         s_IsGLFWInitialized = success;
     }
 
@@ -54,6 +61,27 @@ void Win32Windows::Initialize(const WindowProperties& props)
 
     glfwSetWindowUserPointer(m_Window, &m_Data);
     ToggleVSync(true);
+
+    // Initialize events
+    glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* window, const int width, const int height)
+    {
+        WindowData& data = *static_cast<WindowData*>(glfwGetWindowUserPointer(window));
+
+        // Update window data
+        data.Width = width;
+        data.Height = height;
+
+        // Create and dispatch event
+        WindowResizedEvent resizeEvent(width, height);
+        data.Handler(resizeEvent);
+    });
+
+    glfwSetWindowCloseCallback(m_Window, [](GLFWwindow* window)
+    {
+        WindowData& data = *static_cast<WindowData*>(glfwGetWindowUserPointer(window));
+        WindowClosedEvent closeEvent;
+        data.Handler(closeEvent);
+    });
 }
 
 void Win32Windows::Shutdown()
