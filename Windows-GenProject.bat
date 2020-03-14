@@ -2,10 +2,5 @@
 call Windows-Clean.bat
 mkdir Build
 cd Build
-cmake ../
-mkdir Debug
-mkdir Release
-copy ..\Dependencies\bin\ Debug
-copy ..\Dependencies\bin\ Release
-
+cmake -G "Visual Studio 15 2017 Win64" ..
 cd ..

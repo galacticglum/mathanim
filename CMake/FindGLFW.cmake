@@ -1,44 +1,7 @@
-SET(_PF86 "PROGRAMFILES(X86)")
-SET( GLFW_SEARCH_PATHS
-	${GLFW_ROOT_DIR}					# GLFW!
-	./Dependencies/GLFW
-	$ENV{PROGRAMFILES}/GLFW				# WINDOWS
-	"$ENV{_PF86}/GLFW"		# WINDOWS
-	~/Library/Frameworks				# MAC
-	/Library/Frameworks					# MAC
-	/usr/local							# LINUX/MAC/UNIX
-	/usr								# LINUX/MAC/UNIX
-	/opt								# LINUX/MAC/UNIX
-	/sw									# Fink
-	/opt/local							# DarwinPorts
-	/opt/csw							# Blastwave
-)
+set(GLFW_INCLUDE_DIRS "${Mathanim_Engine_DEPEND_DIR}/glfw/include")
 
-FIND_PATH( GLFW_INCLUDE_DIRS
-	NAMES
-        glfw3.h
-        glfw3native.h
-	PATHS
-		${GLFW_SEARCH_PATHS}
-	PATH_SUFFIXES
-		include
-	DOC
-		"The directory where glfw3.h and glfw3native.h resides"
-)
-
-FIND_LIBRARY( GLFW_LIBRARIES
-	NAMES
-		glfw3 glfw3dll
-	PATHS
-		${GLFW_SEARCH_PATHS}
-	PATH_SUFFIXES
-		lib
-		lib64
-		lib/Release/Win32
-		lib/Release/x64
-	DOC
-		"The GLFW library"
-)
+# set(GLFW_LIBRARIES "${Mathanim_DEPEND_DIR}/glfw/lib/${_config}/x64/$<$<CONFIG:Debug>:glfw3-debug.lib>$<$<CONFIG:Release>:glfw3.lib>")
+set(GLFW_LIBRARIES "${Mathanim_Engine_DEPEND_DIR}/glfw/lib/${_config}/x64/glfw3.lib")
 
 # Check if we found it!
 IF ( GLFW_INCLUDE_DIRS AND GLFW_LIBRARIES )
