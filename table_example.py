@@ -1,3 +1,7 @@
+'''
+Animates a table similar to https://puu.sh/FkyQC/77bd3e83a7.gif.
+'''
+
 from mathanim import actions, sequences, objects, effects, Animation, Alignment
 
 with mathanim.Scene(1920, 1080, fps=30) as scene:
@@ -38,7 +42,7 @@ with mathanim.Scene(1920, 1080, fps=30) as scene:
         if i != len(primes) - 1:
             table.add_horizontal_rule(style='dashed')
 
-    # timeline.add will, by default, append the animation to the end of the timeline (i.e. directly after the last aniamtion).
+    # timeline.add will, by default, append the animation to the end of the timeline (i.e. directly after the last animation).
     # You can specify a padding (using the padding kwarg), the number of seconds to pad between the two animations, 
     # or directly place the animation at a specific time (using the time kwarg)
     timeline.add(header.WriteAnimation)
