@@ -2,6 +2,8 @@
 
 #include <string>
 #include <utility>
+#include <functional>
+#include <Events/Event.h>
 
 /**
  * @struct WindowProperties Window.h
@@ -49,6 +51,11 @@ class Window
 {
 public:
     /**
+     * @brief Window event handler type.
+     */
+    using EventHandler = std::function<void(Event&)>;
+
+    /**
      * @brief Dispose of this Window.
      */
     virtual ~Window() = default;
@@ -67,6 +74,11 @@ public:
      * @brief Get the height of this Window, in pixels.
      */
     virtual uint32_t GetHeight() const = 0;
+
+    /**
+     * @brief Set the event handler.
+     */
+    virtual void SetEventCallback(const EventHandler& handler) = 0;
 
     /**
      * @brief Toggle VSync.

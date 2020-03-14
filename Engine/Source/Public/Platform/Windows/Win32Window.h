@@ -22,6 +22,11 @@ public:
         return m_Data.Height;
     }
 
+    void SetEventCallback(const EventHandler& handler) override
+    {
+        m_Data.Handler = handler;
+    }
+
     void ToggleVSync(bool enabled) override;
     bool IsVSyncEnabled() const override
     {
@@ -39,5 +44,6 @@ private:
         uint32_t Width;
         uint32_t Height;
         bool IsVSyncEnabled;
+        EventHandler Handler;
     } m_Data;
 };
