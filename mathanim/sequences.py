@@ -80,10 +80,14 @@ def chain(*sequence_items: List[SequenceItem]) -> Sequence:
 
     return Sequence(sequence_items)
 
-def combine(*sequence_items: List[SequenceItem]) -> Sequence:
+def accumulates(*sequence_items: List[SequenceItem]) -> Sequence:
     '''
-    Combines a list of sequence items together so that they occur in parallel.
+    Returns a new sequence whose output is the sum of all the individual sequence items.
 
+    :param *sequence_items:
+        The sequence items to accumulate.
+    :returns:
+        A sequence consisting of the sum of the input items.
     '''
 
     pass
