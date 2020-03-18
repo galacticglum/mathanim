@@ -19,7 +19,16 @@ class Action(ABC):
 
         '''
 
-        self.duration = duration
+        self._duration = duration
+
+    @property
+    def duration(self):
+        '''
+        Gets the duration of this action.
+        
+        '''
+        
+        return self._duration
 
     @abstractmethod
     def get_value(self, time: Timecode):
