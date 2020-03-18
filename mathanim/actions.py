@@ -1,7 +1,6 @@
 from typing import Callable, Union
 from abc import ABC, abstractmethod
 
-from mathanim.timeline import Timecode
 Number = Union[int, float]
 
 class Action(ABC):
@@ -10,12 +9,12 @@ class Action(ABC):
     
     '''
 
-    def __init__(self, duration: Timecode):
+    def __init__(self, duration: Number):
         '''
         Initializes an action.
 
         :param duration:
-            The duration, given as a :class:`mathanim.Timecode`, of the action.
+            The duration of the action, in seconds.
 
         '''
 
@@ -31,14 +30,14 @@ class Action(ABC):
         return self._duration
 
     @abstractmethod
-    def get_value(self, time: Timecode):
+    def get_value(self, time: Number):
         '''
         Gets the value of the action at the specified time.
 
         :param time:
-            The time, given as a :class:`mathanim.Timecode`, relative to the start of the action.
+            The time, in seconds, relative to the start of the action.
         :returns:
-            The value of the action after the specified time.
+            The value of the action at the specified time.
 
         '''
 
@@ -55,7 +54,7 @@ class Ramp(Action):
         return a + (b - a) * t
 
     def __init__(self, initial_value: float, destination_value: Number, 
-                 duration: Timecode, func: Callable[[Number, Number], Number] = None):
+                 duration: Number, func: Callable[[Number, Number], Number] = None):
         '''
         Initializes a ramp.
 
@@ -64,7 +63,7 @@ class Ramp(Action):
         :param destination_value:
             The final value of the ramp.
         :param duration:
-            The duration of the ramp, given as a :class:`mathanim.Timecode`.
+            The duration of the ramp, in seconds.
         :param func:
             The ramp interpolation function; takes in an initial value, destination value, and time. Defaults to linear.
         '''
@@ -75,6 +74,16 @@ class Ramp(Action):
 
         super().__init__(duration)
 
-    def get_value(self, time: Timecode):
+    def get_value(self, time: Number):
+        '''
+        Gets the value of the ramp at the specified time.
+
+        :param time:
+            The time, in seconds, relative to the start of the action.
+        :returns:
+            The value of the ramp at the specified time.
+
+        '''
+
         t = time / self.duration
         return self.func(self.initial_value, self.destination_value, t)

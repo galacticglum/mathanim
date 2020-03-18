@@ -1,4 +1,6 @@
+import bisect
 from typing import Union, List
+
 from mathanim.actions import Action
 
 class Sequence:
@@ -16,21 +18,26 @@ class Sequence:
         
         '''
 
-        self.sequence_items = sequence_items
-
+        # Time intervals is an list containing the end time of each sequence item.
+        self._time_intervals = [0]
+        self.items = []
+        self.add(*sequence_items)
+            
     def get_value(self, time):
         '''
         Gets the value of the sequence at the specified time.
 
         :param time:
-            The time, given as a :class:`mathanim.Timecode`, relative to the start of the sequence.
+            The time relative to the start of the sequence, in seconds.
         :returns:
             The value of the sequence after the specified time.
+            If the time exceeds the duration of the sequence, None is returned.
 
         '''
 
-        # actionA[0-3],actionB[4,6])...
-        pass
+        if time > self.duration: return None
+        item_index = bisect.bisect_left(self._time_intervals, time) - 1
+        return self.items[item_index].get_value(time - self._time_intervals[item_index])
 
     @property
     def duration(self):
@@ -39,7 +46,19 @@ class Sequence:
 
         '''
 
-        return sum(item.duration for item in self.sequence_items)
+        return sum(item.duration for item in self.items)
+
+    def add(self, *sequence_items):
+        '''
+        Adds a list of sequence items to this sequence.
+
+        '''
+
+        for item in sequence_items:
+            self.items.append(item)
+            self._time_intervals.append(self._time_intervals[-1] + item.duration)
+
+        return self
 
 # A sequence item is any item that can be added to a sequence.
 SequenceItem = Union[Action, Sequence]
