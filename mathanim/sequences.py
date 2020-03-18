@@ -1,7 +1,7 @@
 import bisect
 from typing import Union, List
 
-from mathanim.actions import Action
+from mathanim.actions import Action, Procedure
 
 class Sequence:
     '''
@@ -84,10 +84,18 @@ def accumulate(*sequence_items: List[SequenceItem]) -> Sequence:
     '''
     Returns a new sequence whose output is the sum of all the individual sequence items.
 
+    :note:
+        The duration of the accumulated sequence is the maximum duration of all the inputs.
+
     :param *sequence_items:
         The sequence items to accumulate.
     :returns:
         A sequence consisting of the sum of the input items.
     '''
 
-    pass
+    def _accumulate_func(time, items):
+        values = (item.get_value(time) for item in items)
+        return sum(v for v in values if v is not None)       
+
+    result_duration = max(item.duration for item in sequence_items)
+    return Sequence(Procedure(result_duration, _accumulate_func, sequence_items))

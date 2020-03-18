@@ -81,9 +81,48 @@ class Ramp(Action):
         :param time:
             The time, in seconds, relative to the start of the action.
         :returns:
+            The value of the ramp at the specified time. 
+            If the time exceeds the duration of the sequence, None is returned.
+
+        '''
+
+        if time > self.duration: return None
+
+        t = time / self.duration
+        return self.func(self.initial_value, self.destination_value, t)
+
+class Procedure(Action):
+    '''
+    General-purpose action that uses a custom function
+    
+    '''
+
+    def __init__(self, duration: Number, func: Callable[[Number], object], *func_args):
+        '''
+        Initializes a procedure.
+
+        :param duration:
+            The duration of the procedure, in seconds.
+        :param func:
+            The custom function to execute.
+        :param *func_args:
+            Arguments to the procedure function.
+
+        '''
+
+        self.func = func
+        self.func_args = func_args
+        super().__init__(duration)
+
+    def get_value(self, time: Number):
+        '''
+        Gets the value of the procedure at the specified time.
+
+       :param time:
+            The time, in seconds, relative to the start of the action.
+        :returns:
             The value of the ramp at the specified time.
 
         '''
 
-        t = time / self.duration
-        return self.func(self.initial_value, self.destination_value, t)
+        return self.func(time, *self.func_args)
