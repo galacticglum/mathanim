@@ -1,4 +1,5 @@
-from mathanim import Scene
+from mathanim import Scene, actions
 
 with Scene() as scene:
-    pass
+    ramp = actions.Ramp(0, 1, 2)
+    print(ramp.get_value(1))
