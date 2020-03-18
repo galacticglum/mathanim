@@ -36,7 +36,7 @@ class Sequence:
         '''
 
         if time > self.duration: return None
-        item_index = bisect.bisect_left(self._time_intervals, time) - 1
+        item_index = max(bisect.bisect_left(self._time_intervals, time) - 1, 0)
         return self.items[item_index].get_value(time - self._time_intervals[item_index])
 
     @property
@@ -90,11 +90,11 @@ def accumulate(*sequence_items: List[SequenceItem]) -> Sequence:
     :param *sequence_items:
         The sequence items to accumulate.
     :returns:
-        A sequence consisting of the sum of the input items.
+        A sequence consist`ing of the sum of the input items.
     '''
 
     def _accumulate_func(time, items):
-        values = (item.get_value(time) for item in items)
+        values = [item.get_value(time) for item in items]
         return sum(v for v in values if v is not None)       
 
     result_duration = max(item.duration for item in sequence_items)
