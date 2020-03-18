@@ -80,7 +80,7 @@ def chain(*sequence_items: List[SequenceItem]) -> Sequence:
 
     return Sequence(sequence_items)
 
-def accumulates(*sequence_items: List[SequenceItem]) -> Sequence:
+def accumulate(*sequence_items: List[SequenceItem]) -> Sequence:
     '''
     Returns a new sequence whose output is the sum of all the individual sequence items.
 
