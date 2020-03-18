@@ -68,3 +68,5 @@ with mathanim.Scene(1920, 1080, fps=30) as scene:
     table_body = objects.SceneObject().add_children(*table.rows[2:])
     table_body.add_effect(effects.LinearWipe(angle=180, feather=500), name='linear_wipe')
     timeline.add(Animation(table_body, sequences.bind_to(actions.Ramp(0, 1, 1.5), 'effects.linear_wipe.percent_complete')))
+
+    scene.export('table_animation.mp4')
