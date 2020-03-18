@@ -22,10 +22,7 @@ class SceneSettings:
         self.height = height
         self.fps = fps
 
-'''
-HDTV (1080p at 30 frames per second) scene preset.
-
-'''
+# HDTV (1080p at 30 frames per second) scene preset.
 SceneSettings.HDTV = SceneSettings(1920, 1080, 30)
 
 class Scene:
