@@ -118,7 +118,7 @@ def accumulate(*sequence_items):
     result_duration = max(item.duration for item in sequence_items)
     return Sequence(Procedure(result_duration, _accumulate_func, sequence_items))
 
-def bind_to(sequence_item, name):
+def bind_to(sequence_item, name, func=None):
     '''
     Binds a :class:`SequenceItem` to an attribute of an object.
 
@@ -127,6 +127,10 @@ def bind_to(sequence_item, name):
     :param name:
         The name of the attribute to bind the sequence to. This supports "dot" notation
         (i.e. ``foo.bar.baz``).
+    :param func:
+        A custom mapping function specifying how the animated value should be applied 
+        to the attribute. This function takes in the attribute and the output value of
+        the sequence item as inputs and returns the modified attribute value.
     :returns:
         A new sequence that takes in an object as its input and applies the specified 
         sequence item on the specified attribute of the input object.
@@ -135,9 +139,14 @@ def bind_to(sequence_item, name):
     
     from mathanim.actions import Procedure
 
-    def _bind_func(time, sequence_item, obj, *args, **kwargs):
-        rsetattr(obj, name, sequence_item.get_value(time, *args, **kwargs))
+    def _bind_func(time, sequence_item, map_func, obj, *args, **kwargs):
+        value = map_func(rgetattr(obj, name), sequence_item.get_value(time, *args, **kwargs))
+        rsetattr(obj, name, value)
 
-    return Sequence(Procedure(sequence_item.duration, _bind_func, sequence_item))
+    if func is None:
+        # This mapping function does nothing. It simply returns the animated value.
+        func = lambda x, v: v
+
+    return Sequence(Procedure(sequence_item.duration, _bind_func, sequence_item, func))
 
     
