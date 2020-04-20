@@ -31,6 +31,7 @@ class Scene:
 
     def __enter__(self):
         print('scene entered')
+        return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
         print('scene exited')

@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
+from mathanim.sequences import SequenceItem
 
-class Action(ABC):
+class Action(SequenceItem):
     '''
     The base action class.
     
@@ -25,20 +26,6 @@ class Action(ABC):
         '''
         
         return self._duration
-
-    @abstractmethod
-    def get_value(self, time):
-        '''
-        Gets the value of the action at the specified time.
-
-        :param time:
-            The time, in seconds, relative to the start of the action.
-        :returns:
-            The value of the action at the specified time.
-
-        '''
-
-        pass
 
 class Ramp(Action):
     '''
@@ -70,7 +57,7 @@ class Ramp(Action):
 
         super().__init__(duration)
 
-    def get_value(self, time):
+    def get_value(self, time, *args, **kwargs):
         '''
         Gets the value of the ramp at the specified time.
 
@@ -102,7 +89,8 @@ class Procedure(Action):
         :param func:
             The custom function to execute.
         :param *func_args:
-            Arguments to the procedure function.
+            Arguments to the procedure function. These will be passed into
+            the function before the args/kwargs from the sequence item.
 
         '''
 
@@ -110,7 +98,7 @@ class Procedure(Action):
         self.func_args = func_args
         super().__init__(duration)
 
-    def get_value(self, time):
+    def get_value(self, time, *args, **kwargs):
         '''
         Gets the value of the procedure at the specified time.
 
@@ -121,4 +109,4 @@ class Procedure(Action):
 
         '''
 
-        return self.func(time, *self.func_args)
+        return self.func(time, *self.func_args, *args, **kwargs)

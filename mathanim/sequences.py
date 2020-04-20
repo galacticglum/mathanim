@@ -1,7 +1,28 @@
 import bisect
-from mathanim.actions import Action, Procedure
+from abc import ABC, abstractmethod
+from mathanim.utils import rgetattr, rsetattr
 
-class Sequence:
+class SequenceItem(ABC):
+    '''
+    The base class for any item that can be added to a :class:`Sequence`.
+    
+    '''
+
+    @abstractmethod
+    def get_value(self, time, *args, **kwargs):
+        '''
+        Gets the value of the sequence item at the specified time.
+
+        :param time:
+            The time, in seconds, relative to the start of the sequence item.
+        :returns:
+            The value of the sequence item at the specified time.
+
+        '''
+
+        pass
+
+class Sequence(SequenceItem):
     '''
     A sequence is a chain of actions (and/or other sequences), executed one after the other, used to build animations.
 
@@ -13,7 +34,7 @@ class Sequence:
 
         :param *sequence_items:
             An optional list of nested sequence items.
-        
+
         '''
 
         # Time intervals is an list containing the end time of each sequence item.
@@ -21,7 +42,7 @@ class Sequence:
         self.items = []
         self.add(*sequence_items)
             
-    def get_value(self, time):
+    def get_value(self, time, *args, **kwargs):
         '''
         Gets the value of the sequence at the specified time.
 
@@ -35,7 +56,7 @@ class Sequence:
 
         if time > self.duration: return None
         item_index = max(bisect.bisect_left(self._time_intervals, time) - 1, 0)
-        return self.items[item_index].get_value(time - self._time_intervals[item_index])
+        return self.items[item_index].get_value(time - self._time_intervals[item_index], *args, **kwargs)
 
     @property
     def duration(self):
@@ -57,8 +78,6 @@ class Sequence:
             self._time_intervals.append(self._time_intervals[-1] + item.duration)
 
         return self
-
-# A sequence item is any item that can be added to a sequence.
 
 def chain(*sequence_items):
     '''
@@ -87,12 +106,38 @@ def accumulate(*sequence_items):
     :param *sequence_items:
         The sequence items to accumulate.
     :returns:
-        A sequence consist`ing of the sum of the input items.
+        A sequence consisting of the sum of the input items.
     '''
 
-    def _accumulate_func(time, items):
-        values = [item.get_value(time) for item in items]
+    from mathanim.actions import Procedure
+
+    def _accumulate_func(time, items, *args, **kwargs):
+        values = [item.get_value(time, *args, **kwargs) for item in items]
         return sum(v for v in values if v is not None)       
 
     result_duration = max(item.duration for item in sequence_items)
     return Sequence(Procedure(result_duration, _accumulate_func, sequence_items))
+
+def bind_to(sequence_item, name):
+    '''
+    Binds a :class:`SequenceItem` to an attribute of an object.
+
+    :param sequence_item:
+        The :class:`SequenceItem` to bind.
+    :param name:
+        The name of the attribute to bind the sequence to. This supports "dot" notation
+        (i.e. ``foo.bar.baz``).
+    :returns:
+        A new sequence that takes in an object as its input and applies the specified 
+        sequence item on the specified attribute of the input object.
+
+    '''
+    
+    from mathanim.actions import Procedure
+
+    def _bind_func(time, sequence_item, obj, *args, **kwargs):
+        rsetattr(obj, name, sequence_item.get_value(time, *args, **kwargs))
+
+    return Sequence(Procedure(sequence_item.duration, _bind_func, sequence_item))
+
+    
