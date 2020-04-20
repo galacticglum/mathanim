@@ -1,7 +1,4 @@
-from typing import Callable, Union
 from abc import ABC, abstractmethod
-
-Number = Union[int, float]
 
 class Action(ABC):
     '''
@@ -9,7 +6,7 @@ class Action(ABC):
     
     '''
 
-    def __init__(self, duration: Number):
+    def __init__(self, duration):
         '''
         Initializes an action.
 
@@ -30,7 +27,7 @@ class Action(ABC):
         return self._duration
 
     @abstractmethod
-    def get_value(self, time: Number):
+    def get_value(self, time):
         '''
         Gets the value of the action at the specified time.
 
@@ -50,11 +47,10 @@ class Ramp(Action):
     '''
 
     @staticmethod
-    def linear(a: Number, b: Number, t: Number) -> Number:
+    def linear(a, b, t):
         return a + (b - a) * t
 
-    def __init__(self, initial_value: float, destination_value: Number, 
-                 duration: Number, func: Callable[[Number, Number], Number] = None):
+    def __init__(self, initial_value, destination_value, duration, func=None):
         '''
         Initializes a ramp.
 
@@ -74,7 +70,7 @@ class Ramp(Action):
 
         super().__init__(duration)
 
-    def get_value(self, time: Number):
+    def get_value(self, time):
         '''
         Gets the value of the ramp at the specified time.
 
@@ -97,7 +93,7 @@ class Procedure(Action):
     
     '''
 
-    def __init__(self, duration: Number, func: Callable[[Number], object], *func_args):
+    def __init__(self, duration, func, *func_args):
         '''
         Initializes a procedure.
 
@@ -114,7 +110,7 @@ class Procedure(Action):
         self.func_args = func_args
         super().__init__(duration)
 
-    def get_value(self, time: Number):
+    def get_value(self, time):
         '''
         Gets the value of the procedure at the specified time.
 

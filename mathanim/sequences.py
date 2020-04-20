@@ -1,6 +1,4 @@
 import bisect
-from typing import Union, List
-
 from mathanim.actions import Action, Procedure
 
 class Sequence:
@@ -9,7 +7,7 @@ class Sequence:
 
     '''
 
-    def __init__(self, *sequence_items: List[Action]):
+    def __init__(self, *sequence_items):
         '''
         Initializes the sequence.
 
@@ -61,9 +59,8 @@ class Sequence:
         return self
 
 # A sequence item is any item that can be added to a sequence.
-SequenceItem = Union[Action, Sequence]
 
-def chain(*sequence_items: List[SequenceItem]) -> Sequence:
+def chain(*sequence_items):
     '''
     Chains a list of sequence items together so that they occur sequentially.
 
@@ -80,7 +77,7 @@ def chain(*sequence_items: List[SequenceItem]) -> Sequence:
 
     return Sequence(sequence_items)
 
-def accumulate(*sequence_items: List[SequenceItem]) -> Sequence:
+def accumulate(*sequence_items):
     '''
     Returns a new sequence whose output is the sum of all the individual sequence items.
 
