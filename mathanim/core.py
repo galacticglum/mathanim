@@ -1,13 +1,17 @@
+import tqdm
 import copy
 import cairo
+from colour import Color
+from pathlib import Path
 from intervaltree import IntervalTree
-from mathanim.utils import rgetattr, rsetattr
+from mathanim.objects import SceneObject
+from mathanim.utils import rgetattr, rsetattr, convert_colour
 
 class Animation:
     '''
     A wrapper around scene objects and sequences. An animation is associated with an instance of a
-    scene object and each sequence in the animation modifies the object in some way (i.e. with a
-    sequence item bound to an attribute).
+    :class:`mathanim.objects.SceneObject` and each sequence in the animation modifies the object in 
+    some way (i.e. with a sequence item bound to an attribute).
 
     '''
 
@@ -46,7 +50,7 @@ class Animation:
         Initializes an instance of :class:`Animation`.
 
         :param animation_object:
-            The object to animate.
+            The :class:`mathanim.objects.SceneObject` to animate.
         :param *sequence_instances:
             The sequence instances to add to the animation. This can either be an 
             :class:`Animation.SequenceInstance` object or a dictionary mapping 
@@ -89,7 +93,8 @@ class Animation:
         :param time:
             The time relative to the start of the sequence, in seconds.
         :returns:
-            A copy of the object with the animation at the specified time applied.
+            A copy of the :class:`mathanim.objects.SceneObject` with the animation 
+            at the specified time applied.
 
         '''
 
@@ -103,6 +108,26 @@ class Animation:
             rsetattr(animation_object, instance.name, value)
         
         return animation_object
+
+class FrameSnapshot:
+    '''
+    A snapshot of a single frame in the timeline.
+
+    '''
+    
+    def __init__(self, frame, objects):
+        '''
+        Initializes an instance of :class:`FrameSnapshot`.
+
+        :param frame:
+            The frame that this snapshot was taken.
+        :param objects:
+            The objects in this frame.
+
+        '''
+
+        self.frame = frame
+        self.objects = objects
 
 class Timeline:
     '''
@@ -170,10 +195,10 @@ class Timeline:
 
     def get(self, frame):
         '''
-        Getts the timeline at the specified frame.
+        Gets the timeline at the specified frame.
 
         :returns:
-            A list of objects comprising the frame.
+            A list of :class:`mathanim.objects.SceneObject` objects making up the frame.
 
         '''
 
@@ -186,7 +211,17 @@ class Timeline:
             t = (frame - interval.begin) / (interval.end - interval.begin - 1)
             objects.append(interval.data.animate(interval.data.duration * t))
 
-        return objects
+        return FrameSnapshot(frame, objects)
+
+    @property
+    def snapshots(self):
+        '''
+        Gets all the frame snapshots in this timeline.
+
+        '''
+
+        for frame in range(self.total_frames):
+            yield self.get(frame)
 
     @property
     def total_frames(self):
@@ -205,18 +240,6 @@ class Timeline:
         '''
 
         return self.total_frames / self.fps
-        
-    def __iter__(self):
-        self._current_frame = 0
-        return self
-
-    def __next__(self):
-        if self._current_frame > self.total_frames:
-            raise StopIteration
-        
-        objects = self.get(self._current_frame)
-        self._current_frame += 1
-        return objects
 
 class SceneSettings:
     '''
@@ -224,7 +247,7 @@ class SceneSettings:
 
     '''
     
-    def __init__(self, width, height, fps):
+    def __init__(self, reference_width, reference_height, fps):
         '''
         Initializes an instance of :class:`SceneSettings`.
 
@@ -236,17 +259,30 @@ class SceneSettings:
             The frames per second of the scene.
         
         '''
-        self.width = width
-        self.height = height
+
+        self.reference_width = reference_width
+        self.reference_height = reference_height
         self.fps = fps
 
 # HDTV (1080p at 30 frames per second) scene preset.
 SceneSettings.HDTV = SceneSettings(1920, 1080, 30)
 
 class Scene:
-    def __init__(self, settings=SceneSettings.HDTV):
+    def __init__(self, settings=SceneSettings.HDTV, background_colour='black'):
+        '''
+        Initializes an instance of :class:`Scene`.
+
+        :param settings:
+            The :class:`SceneSettings` to use with this scene.
+            Defaults to 1080p at 30 fps (HDTV).
+        :param background_colour:
+            The background colour of the scene. Defaults to black.
+
+        '''
+
         self.settings = settings
         self.timeline = Timeline(settings.fps)
+        self.background_colour = convert_colour(background_colour)
 
     def __enter__(self):
         print('scene entered')
@@ -254,3 +290,58 @@ class Scene:
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
         print('scene exited')
+
+    def _clear(self, render_context):
+        '''
+        Clear the screen.
+
+        '''
+
+        render_context.set_source_rgb(*self.background_colour.rgb)
+        render_context.paint()
+
+    def export(self, filepath, output_width=None, output_height=None, frame_format=cairo.FORMAT_ARGB32,
+               show_progress_bar=True):
+        '''
+        Export the scene to a video file.
+
+        :param filepath:
+            The path where the rendered result should be saved.
+        :param output_width:
+            The horizontal resolution of the video, in pixels.
+            Defaults to the width of the reference frame.
+        :param output_height:
+            The vertical resolution of the video, in pixels.
+            Defaults to the height of the reference frame.
+        :param frame_format:
+            The colour format of a single frame. Defaults to ARGB32.
+        :param show_progress_bar:
+            Indicates whether a progress bar should be displayed while the video is rendered.
+            Defaults to ``True``.
+
+        '''
+
+        if output_width is None:
+            output_width = self.settings.reference_width
+
+        if output_height is None:
+            output_height = self.settings.reference_height
+
+        surface = cairo.ImageSurface(frame_format, output_width, output_height)
+        context = cairo.Context(surface)
+
+        # Normalize coordinate system to the reference frame
+        context.scale(output_width / self.settings.reference_width, output_height / self.settings.reference_height)
+
+        destination_path = Path(filepath)
+        destination_path.mkdir(parents=True, exist_ok=True)
+
+        for snapshot in tqdm.tqdm(self.timeline.snapshots, disable=not show_progress_bar):
+            self._clear(context)
+            for frame_object in snapshot.objects:
+                # Isolate transformations using save/restore.
+                context.save()
+                frame_object.draw(context)
+                context.restore()
+                
+            surface.write_to_png(destination_path / 'frame-{}.png'.format(str(snapshot.frame).zfill(3)))
