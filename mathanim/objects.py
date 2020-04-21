@@ -1,3 +1,4 @@
+import math
 from colour import Color
 from abc import ABC, abstractmethod
 from mathanim.utils import Vector2, convert_colour
@@ -48,8 +49,8 @@ class Rectangle(SceneObject):
     '''
 
     def __init__(self, width=1, height=1, position=None, rotation=0, 
-                scale=None, fill_colour='white', fill_opacity=1, 
-                stroke_colour=None, stroke_width=1,
+                scale=None, fill_colour='white', fill_opacity=1,
+                border_radius=0, stroke_colour=None, stroke_width=1,
                 stroke_opacity=1, opacity=1):
         '''
         Initializes an instance of :class:`Rectangle`.
@@ -70,13 +71,15 @@ class Rectangle(SceneObject):
             If set to ``None``, the rectangle has no fill.
         :param fill_opacity:
             The opacity of the rectangle fill. Defaults to 1 (fully opaque).
+        :param border_radius:
+            The radius of the corner curvature. Defaults to 0.
         :param stroke_colour:
             The colour of the rectangle's stroke. Defaults to ``None``, meaining that
             there is no stroke.
         :param stroke_width:
             The width of the stroke from the edge of the rectangle.
             An inner and outer stroke of this width is applied.
-            
+
             Defaults to 1.
         :param stroke_opacity:
             The opacity of the stroke. Defaults to 1 (fully opaque).
@@ -89,10 +92,9 @@ class Rectangle(SceneObject):
         super().__init__(position, rotation, scale, opacity)
 
         self.size = Vector2(width, height)
-
         self.fill_colour = convert_colour(fill_colour)
         self.fill_opacity = fill_opacity
-
+        self.border_radius = border_radius
         self.stroke_colour = convert_colour(stroke_colour)
         self.stroke_width = stroke_width
         self.stroke_opacity = stroke_opacity
@@ -160,7 +162,13 @@ class Rectangle(SceneObject):
 
         # Draw the rectangle. We use the coordinate (0, 0) since the transformation matrix
         # has already been set to the position of the rectangle.
-        render_context.rectangle(0, 0, self.width, self.height)
+        render_context.new_sub_path()
+        render_context.arc(self.width - self.border_radius, self.border_radius, self.border_radius, math.radians(-90), 0)
+        render_context.arc(self.width - self.border_radius, self.height - self.border_radius, self.border_radius, 0, math.radians(90))
+        render_context.arc(self.border_radius, self.height - self.border_radius, self.border_radius, math.radians(90), math.radians(180))
+        render_context.arc(self.border_radius, self.border_radius, self.border_radius, math.radians(180), math.radians(270))
+        render_context.close_path()
+
         do_stroke = self.stroke_colour is not None
         if self.fill_colour is not None:
             render_context.set_source_rgba(*self.fill_colour.rgb, self.opacity * self.fill_opacity)

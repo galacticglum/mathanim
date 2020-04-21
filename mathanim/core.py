@@ -230,7 +230,7 @@ class Timeline:
 
         '''
 
-        return self._animation_tree.end() - 1
+        return self._animation_tree.end()
     
     @property
     def total_seconds(self):
