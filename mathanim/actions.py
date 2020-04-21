@@ -9,7 +9,7 @@ class Action(SequenceItem):
 
     def __init__(self, duration):
         '''
-        Initializes an action.
+        Initializes an instance of :class:`Action`.
 
         :param duration:
             The duration of the action, in seconds.
@@ -39,7 +39,7 @@ class Ramp(Action):
 
     def __init__(self, initial_value, destination_value, duration, func=None):
         '''
-        Initializes a ramp.
+        Initializes an instance of :class:`Ramp`.
 
         :param initial_value:
             The initial value of the ramp.
@@ -57,7 +57,7 @@ class Ramp(Action):
 
         super().__init__(duration)
 
-    def get_value(self, time, *args, **kwargs):
+    def get_value(self, time):
         '''
         Gets the value of the ramp at the specified time.
 
@@ -82,15 +82,14 @@ class Procedure(Action):
 
     def __init__(self, duration, func, *func_args):
         '''
-        Initializes a procedure.
+        Initializes an instance of :class:`Procedure`.
 
         :param duration:
             The duration of the procedure, in seconds.
         :param func:
             The custom function to execute.
         :param *func_args:
-            Arguments to the procedure function. These will be passed into
-            the function before the args/kwargs from the sequence item.
+            Arguments to the procedure function.
 
         '''
 
@@ -98,7 +97,7 @@ class Procedure(Action):
         self.func_args = func_args
         super().__init__(duration)
 
-    def get_value(self, time, *args, **kwargs):
+    def get_value(self, time):
         '''
         Gets the value of the procedure at the specified time.
 
@@ -109,4 +108,4 @@ class Procedure(Action):
 
         '''
 
-        return self.func(time, *self.func_args, *args, **kwargs)
+        return self.func(time, *self.func_args)

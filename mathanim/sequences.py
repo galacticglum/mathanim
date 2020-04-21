@@ -1,6 +1,5 @@
 import bisect
 from abc import ABC, abstractmethod
-from mathanim.utils import rgetattr, rsetattr
 
 class SequenceItem(ABC):
     '''
@@ -9,7 +8,7 @@ class SequenceItem(ABC):
     '''
 
     @abstractmethod
-    def get_value(self, time, *args, **kwargs):
+    def get_value(self, time):
         '''
         Gets the value of the sequence item at the specified time.
 
@@ -30,7 +29,7 @@ class Sequence(SequenceItem):
 
     def __init__(self, *sequence_items):
         '''
-        Initializes the sequence.
+        Initializes an instance of :class:`Sequence`.
 
         :param *sequence_items:
             An optional list of nested sequence items.
@@ -42,7 +41,7 @@ class Sequence(SequenceItem):
         self.items = []
         self.add(*sequence_items)
             
-    def get_value(self, time, *args, **kwargs):
+    def get_value(self, time):
         '''
         Gets the value of the sequence at the specified time.
 
@@ -56,7 +55,7 @@ class Sequence(SequenceItem):
 
         if time > self.duration: return None
         item_index = max(bisect.bisect_left(self._time_intervals, time) - 1, 0)
-        return self.items[item_index].get_value(time - self._time_intervals[item_index], *args, **kwargs)
+        return self.items[item_index].get_value(time - self._time_intervals[item_index])
 
     @property
     def duration(self):
@@ -111,42 +110,10 @@ def accumulate(*sequence_items):
 
     from mathanim.actions import Procedure
 
-    def _accumulate_func(time, items, *args, **kwargs):
-        values = [item.get_value(time, *args, **kwargs) for item in items]
+    def _accumulate_func(time, items):
+        values = [item.get_value(time) for item in items]
         return sum(v for v in values if v is not None)       
 
     result_duration = max(item.duration for item in sequence_items)
     return Sequence(Procedure(result_duration, _accumulate_func, sequence_items))
-
-def bind_to(sequence_item, name, func=None):
-    '''
-    Binds a :class:`SequenceItem` to an attribute of an object.
-
-    :param sequence_item:
-        The :class:`SequenceItem` to bind.
-    :param name:
-        The name of the attribute to bind the sequence to. This supports "dot" notation
-        (i.e. ``foo.bar.baz``).
-    :param func:
-        A custom mapping function specifying how the animated value should be applied 
-        to the attribute. This function takes in the attribute and the output value of
-        the sequence item as inputs and returns the modified attribute value.
-    :returns:
-        A new sequence that takes in an object as its input and applies the specified 
-        sequence item on the specified attribute of the input object.
-
-    '''
-    
-    from mathanim.actions import Procedure
-
-    def _bind_func(time, sequence_item, map_func, obj, *args, **kwargs):
-        value = map_func(rgetattr(obj, name), sequence_item.get_value(time, *args, **kwargs))
-        rsetattr(obj, name, value)
-
-    if func is None:
-        # This mapping function does nothing. It simply returns the animated value.
-        func = lambda x, v: v
-
-    return Sequence(Procedure(sequence_item.duration, _bind_func, sequence_item, func))
-
     

@@ -1,4 +1,5 @@
 import cairo
+from mathanim.timeline import Timeline
 
 class SceneSettings:
     '''
@@ -8,7 +9,7 @@ class SceneSettings:
     
     def __init__(self, width, height, fps):
         '''
-        Initializes SceneSettings.
+        Initializes an instance of :class:`SceneSettings`.
 
         :param width:
             The width of the scene's reference frame.
@@ -28,6 +29,7 @@ SceneSettings.HDTV = SceneSettings(1920, 1080, 30)
 class Scene:
     def __init__(self, settings=SceneSettings.HDTV):
         self.settings = settings
+        self.timeline = Timeline(settings.fps)
 
     def __enter__(self):
         print('scene entered')
