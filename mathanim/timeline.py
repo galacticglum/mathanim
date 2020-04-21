@@ -2,48 +2,6 @@ import copy
 from intervaltree import IntervalTree
 from mathanim.utils import rgetattr, rsetattr
 
-class Timecode:
-    def __init__(self, hours=0, minutes=0, seconds=0, frames=0):
-        self.hours = hours
-        self.minutes = minutes
-        self.seconds = seconds
-        self.frames = frames
-
-    def total_frames(self, fps):
-        return self.frames + fps * (self.seconds + self.minutes * 60 + self.hours * 3600)
-    
-    def __add__(self, other):
-        return Timecode(
-            hours=self.hours + other.hours,
-            minutes=self.minutes + other.minutes,
-            seconds=self.seconds + other.seconds,
-            frames=self.frames + other.frames
-        )
-
-    def __sub__(self, other):
-        return Timecode(
-            hours=self.hours - other.hours,
-            minutes=self.minutes - other.minutes,
-            seconds=self.seconds - other.seconds,
-            frames=self.frames - other.frames
-        )
-
-    def __mul__(self, other):
-        return Timecode(
-            hours=self.hours * other.hours,
-            minutes=self.minutes * other.minutes,
-            seconds=self.seconds * other.seconds,
-            frames=self.frames * other.frames
-        )
-
-    def __div__(self, other):
-        return Timecode(
-            hours=self.hours / other.hours,
-            minutes=self.minutes / other.minutes,
-            seconds=self.seconds / other.seconds,
-            frames=self.frames / other.frames
-        )
-
 class Animation:
     '''
     A wrapper around scene objects and sequences. An animation is associated with an instance of a
