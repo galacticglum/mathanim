@@ -49,7 +49,8 @@ class Rectangle(SceneObject):
 
     def __init__(self, width=1, height=1, position=None, rotation=0, 
                 scale=None, fill_colour='white', fill_opacity=1, 
-                opacity=1):
+                stroke_colour=None, stroke_width=1,
+                stroke_opacity=1, opacity=1):
         '''
         Initializes an instance of :class:`Rectangle`.
 
@@ -69,6 +70,16 @@ class Rectangle(SceneObject):
             If set to ``None``, the rectangle has no fill.
         :param fill_opacity:
             The opacity of the rectangle fill. Defaults to 1 (fully opaque).
+        :param stroke_colour:
+            The colour of the rectangle's stroke. Defaults to ``None``, meaining that
+            there is no stroke.
+        :param stroke_width:
+            The width of the stroke from the edge of the rectangle.
+            An inner and outer stroke of this width is applied.
+            
+            Defaults to 1.
+        :param stroke_opacity:
+            The opacity of the stroke. Defaults to 1 (fully opaque).
         :param opacity:
             The opacity of the rectangle. Defaults to 1 (fully opaque).
             This affects the WHOLE rectangle.
@@ -77,9 +88,14 @@ class Rectangle(SceneObject):
 
         super().__init__(position, rotation, scale, opacity)
 
+        self.size = Vector2(width, height)
+
         self.fill_colour = convert_colour(fill_colour)
         self.fill_opacity = fill_opacity
-        self.size = Vector2(width, height)
+
+        self.stroke_colour = convert_colour(stroke_colour)
+        self.stroke_width = stroke_width
+        self.stroke_opacity = stroke_opacity
 
     @property
     def size(self):
@@ -145,7 +161,18 @@ class Rectangle(SceneObject):
         # Draw the rectangle. We use the coordinate (0, 0) since the transformation matrix
         # has already been set to the position of the rectangle.
         render_context.rectangle(0, 0, self.width, self.height)
+        do_stroke = self.stroke_colour is not None
         if self.fill_colour is not None:
             render_context.set_source_rgba(*self.fill_colour.rgb, self.opacity * self.fill_opacity)
-            render_context.fill()
+
+            if do_stroke:
+                # the fill command consumes the current path so if we 
+                # want to draw a stroke AND a fill, we need to preserve it.
+                render_context.fill_preserve()
+            else:
+                render_context.fill()
         
+        if do_stroke:
+            render_context.set_source_rgba(*self.stroke_colour.rgb, self.opacity * self.stroke_opacity)
+            render_context.set_line_width(self.stroke_width)
+            render_context.stroke()
