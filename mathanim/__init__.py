@@ -1,5 +1,3 @@
 import mathanim.actions as actions
 import mathanim.sequences as sequences
-
-from mathanim.timeline import Timeline, Animation
-from mathanim.scene import Scene, SceneSettings
+from mathanim.core import Scene, SceneSettings, Timeline, Animation
