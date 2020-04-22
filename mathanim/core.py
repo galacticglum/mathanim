@@ -228,10 +228,12 @@ class Scene:
             end_frame = start_frame + round(animation.duration * self.settings.fps)
             self._animation_tree[start_frame:end_frame] = animation
         
-    @property
-    def snapshots(self):
+    def render(self):
         '''
-        Gets all the frame snapshots in this timeline.
+        Renders this scene.
+        
+        :returns:
+            Yields each frame in order as a :class:`FrameSnapshot`.
 
         '''
 
@@ -350,7 +352,7 @@ class Scene:
 
         output_shape = (output_width, output_height)
         video = cv2.VideoWriter(str(filepath), cv2.VideoWriter_fourcc(*codec), self.settings.fps, output_shape)
-        for snapshot in tqdm.tqdm(self.snapshots, disable=not show_progress_bar):
+        for snapshot in tqdm.tqdm(self.render(), disable=not show_progress_bar):
             self._clear(context)
             for frame_object in snapshot.objects:
                 # Isolate transformations using save/restore.
