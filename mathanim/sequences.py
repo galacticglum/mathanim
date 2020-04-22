@@ -93,7 +93,7 @@ def chain(*sequence_items):
 
     '''
 
-    return Sequence(sequence_items)
+    return Sequence(*sequence_items)
 
 def accumulate(*sequence_items):
     '''

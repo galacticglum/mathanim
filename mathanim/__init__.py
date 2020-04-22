@@ -4,7 +4,7 @@ import mathanim.actions as actions
 import mathanim.sequences as sequences
 
 # Core classes
-from mathanim.core import Scene, SceneSettings, Timeline, Animation
+from mathanim.core import Scene, SceneSettings, Animation
 
 # Utility structures
 from colour import Color

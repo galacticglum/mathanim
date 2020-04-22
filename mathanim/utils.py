@@ -264,3 +264,27 @@ class Vector2:
 
     def __neg__(self): return Vector2(-self.x, -self.y)
     def __str__(self): return '({}, {})'.format(x, y)
+
+class BidirectionalMap(dict):
+    '''
+    A bidirectional dictionary. It supports key-value and value-key mapping.
+
+    '''
+
+    def __setitem__(self, key, value):
+        if key in self:
+            del self[key]
+        
+        if value in self:
+            del self[value]
+
+        dict.__setitem__(self, key, value)
+        dict.__setitem__(self, value, key)
+    
+    def __delitem__(self, key):
+        dict.__delitem__(self, self[key])
+        dict.__delitem__(self, key)
+    
+    def __len__(self):
+        return dict.__len__(self) // 2
+    

@@ -8,7 +8,7 @@ from pathlib import Path
 from mathanim.errors import PathError
 from intervaltree import IntervalTree
 from mathanim.objects import SceneObject
-from mathanim.utils import rgetattr, rsetattr, convert_colour
+from mathanim.utils import rgetattr, rsetattr, convert_colour, BidirectionalMap
 
 class Animation:
     '''
@@ -108,6 +108,7 @@ class Animation:
                 attribute_value = rgetattr(animation_object, instance.name)
                 value = instance.map_func(attribute_value, value)
             
+            if value is None: continue
             rsetattr(animation_object, instance.name, value)
         
         return animation_object
@@ -132,23 +133,54 @@ class FrameSnapshot:
         self.frame = frame
         self.objects = objects
 
-class Timeline:
+class SceneSettings:
     '''
-    A collection of animations that is simulated frame by frame.
-    
-    '''
-    
-    def __init__(self, fps):
-        '''
-        Initializes an instance of :class:`Timeline`.
+    The settings of a Scene.
 
+    '''
+    
+    def __init__(self, reference_width, reference_height, fps):
+        '''
+        Initializes an instance of :class:`SceneSettings`.
+
+        :param width:
+            The width of the scene's reference frame.
+        :param height:
+            The height of the scene's reference frame.
         :param fps:
-            The frames per second of the timeline.
+            The frames per second of the scene.
+        
+        '''
+
+        self.reference_width = reference_width
+        self.reference_height = reference_height
+        self.fps = fps
+
+# HDTV (1080p at 30 frames per second) scene preset.
+SceneSettings.HDTV30 = SceneSettings(1920, 1080, 30)
+
+# HDTV (1080p at 60 frames per second) scene preset.
+SceneSettings.HDTV60 = SceneSettings(1920, 1080, 60)
+
+class Scene:
+    def __init__(self, settings=SceneSettings.HDTV60, background_colour='black'):
+        '''
+        Initializes an instance of :class:`Scene`.
+
+        :param settings:
+            The :class:`SceneSettings` to use with this scene.
+            Defaults to 1080p at 60 fps (HDTV).
+        :param background_colour:
+            The background colour of the scene. Defaults to black.
 
         '''
 
-        self.fps = fps
+        self.settings = settings
+        self.background_colour = convert_colour(background_colour)
+
         self._animation_tree = IntervalTree()
+        # Maps objects to a unique identifier
+        self._object_ids = {}
 
     def add(self, *animations, padding=0):
         '''
@@ -165,7 +197,7 @@ class Timeline:
 
         '''
 
-        start_frame = self._animation_tree.end() + padding * self.fps
+        start_frame = self._animation_tree.end() + padding * self.settings.fps
         self.add_at(start_frame, *animations, seconds=False)
 
     def add_at(self, time, *animations, seconds=True):
@@ -188,12 +220,12 @@ class Timeline:
 
         start_frame = time
         if seconds:
-            start_frame *= self.fps
+            start_frame *= self.settings.fps
 
         for animation in animations:
             # The interval tree library does not include the upper bound so we need to add a frame
             # to the upper bound. The actual end frame of the animation is end_frame - 1.
-            end_frame = start_frame + round(animation.duration * self.fps)
+            end_frame = start_frame + round(animation.duration * self.settings.fps)
             self._animation_tree[start_frame:end_frame] = animation
 
     def get(self, frame):
@@ -242,53 +274,7 @@ class Timeline:
 
         '''
 
-        return self.total_frames / self.fps
-
-class SceneSettings:
-    '''
-    The settings of a Scene.
-
-    '''
-    
-    def __init__(self, reference_width, reference_height, fps):
-        '''
-        Initializes an instance of :class:`SceneSettings`.
-
-        :param width:
-            The width of the scene's reference frame.
-        :param height:
-            The height of the scene's reference frame.
-        :param fps:
-            The frames per second of the scene.
-        
-        '''
-
-        self.reference_width = reference_width
-        self.reference_height = reference_height
-        self.fps = fps
-
-# HDTV (1080p at 30 frames per second) scene preset.
-SceneSettings.HDTV30 = SceneSettings(1920, 1080, 30)
-
-# HDTV (1080p at 60 frames per second) scene preset.
-SceneSettings.HDTV60 = SceneSettings(1920, 1080, 60)
-
-class Scene:
-    def __init__(self, settings=SceneSettings.HDTV60, background_colour='black'):
-        '''
-        Initializes an instance of :class:`Scene`.
-
-        :param settings:
-            The :class:`SceneSettings` to use with this scene.
-            Defaults to 1080p at 60 fps (HDTV).
-        :param background_colour:
-            The background colour of the scene. Defaults to black.
-
-        '''
-
-        self.settings = settings
-        self.timeline = Timeline(settings.fps)
-        self.background_colour = convert_colour(background_colour)
+        return self.total_frames / self.settings.fps
 
     @property
     def background_colour(self):
@@ -375,7 +361,7 @@ class Scene:
 
         output_shape = (output_width, output_height)
         video = cv2.VideoWriter(str(filepath), cv2.VideoWriter_fourcc(*codec), self.settings.fps, output_shape)
-        for snapshot in tqdm.tqdm(self.timeline.snapshots, disable=not show_progress_bar):
+        for snapshot in tqdm.tqdm(self.snapshots, disable=not show_progress_bar):
             self._clear(context)
             for frame_object in snapshot.objects:
                 # Isolate transformations using save/restore.
