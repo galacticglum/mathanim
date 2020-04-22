@@ -12,6 +12,7 @@ def rgetattr(obj, name, *args):
         The name of the attribute to get.
     
     '''
+
     def _getattr(obj, name):
         return getattr(obj, name, *args)
 

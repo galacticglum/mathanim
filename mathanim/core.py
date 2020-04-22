@@ -48,7 +48,7 @@ class Animation:
             self.name = name
             self.map_func = map_func
 
-    def __init__(self, animation_object, *sequence_instances):
+    def __init__(self, animation_object, *sequence_instances, check_attributes=True):
         '''
         Initializes an instance of :class:`Animation`.
 
@@ -58,21 +58,33 @@ class Animation:
             The sequence instances to add to the animation. This can either be an 
             :class:`Animation.SequenceInstance` object or a dictionary mapping 
             attribute names to their bounded sequence items.
+        :param check_attributes:
+            Indicates whether the animation should check if the specified animation object
+            has the attributes that the sequences were binded to. Defaults to ``True``.
+
+            Disabling this can be useful if the object's attributes are modified at runtime.
 
         '''
 
         self.initial_object = animation_object
         self.sequence_instances = []
 
-        for sequence_instance in sequence_instances:
-            if isinstance(sequence_instance, dict):
-                for name in sequence_instance:
-                    self.sequence_instances.append(Animation.SequenceInstance(sequence_instance[name], name))
-            elif isinstance(sequence_instance, Animation.SequenceInstance):
-                self.sequence_instances.append(sequence_instance)
+        for x in sequence_instances:
+            if isinstance(x, dict):
+                for name in x:
+                    self.sequence_instances.append(Animation.SequenceInstance(x[name], name))
+            elif isinstance(x, Animation.SequenceInstance):
+                self.sequence_instances.append(x)
             else:
                 raise TypeError('Invalid sequence instance argument specified. Expected dictionary or object ' +
                                 'of type Animation.SequenceInstance but found {} instead'.format(type(sequence_instance)))
+
+        if not check_attributes: return
+        for sequence_instance in self.sequence_instances:
+            value = rgetattr(self.initial_object, sequence_instance.name, None)
+            if value is None:
+                error_message = '{} has no attribute with name \'{}\''.format(self.initial_object.__class__.__name__, sequence_instance.name)
+                raise AttributeError(error_message)
          
     @property
     def duration(self):
@@ -89,19 +101,20 @@ class Animation:
         
         return max(instance.sequence_item.duration for instance in self.sequence_instances)
 
-    def animate(self, time):
+    def animate(self, time, animation_object):
         '''
         Animate this :class:`Animation`.
 
         :param time:
             The time relative to the start of the sequence, in seconds.
+        :param animation_object:
+            The object to update with the animated values.
         :returns:
             A copy of the :class:`mathanim.objects.SceneObject` with the animation 
             at the specified time applied.
 
         '''
 
-        animation_object = copy.deepcopy(self.initial_object)
         for instance in self.sequence_instances:
             value = instance.sequence_item.get_value(time)
             if instance.map_func is not None:
@@ -163,6 +176,11 @@ SceneSettings.HDTV30 = SceneSettings(1920, 1080, 30)
 SceneSettings.HDTV60 = SceneSettings(1920, 1080, 60)
 
 class Scene:
+    '''
+    Represents the screen and all the objects in it.
+
+    '''
+
     def __init__(self, settings=SceneSettings.HDTV60, background_colour='black'):
         '''
         Initializes an instance of :class:`Scene`.
@@ -179,8 +197,10 @@ class Scene:
         self.background_colour = convert_colour(background_colour)
 
         self._animation_tree = IntervalTree()
-        # Maps objects to a unique identifier
-        self._object_ids = {}
+
+        # Maps objects to a unique identifier. We use a bidirectional map 
+        # si that we can lookup objects by value AND by id).
+        self._object_ids = BidirectionalMap()
 
     def add(self, *animations, padding=0):
         '''
