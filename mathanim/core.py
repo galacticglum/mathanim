@@ -325,7 +325,7 @@ class Scene:
         self._items = []
         self._triggers = []
 
-    def add(self, *animations, padding=0):
+    def add(self, *animations, padding=0, remove_animation=False):
         '''
         Appends the animations to the end of the timeline (i.e. directly after the last animation).
 
@@ -337,10 +337,13 @@ class Scene:
             The :class:`Animation` objects to add.
         :param padding:
             The amount of time, in seconds, to pad between the end of the timeline and the new animations. 
+        :param remove_animation:
+            Indicates whether the animated object should be removed after its animation is complete.
+            Defaults to ``False``.
 
         '''
 
-        self.add_at(self.total_seconds + padding, *animations)
+        self.add_at(self.total_seconds + padding, *animations, remove_animation=remove_animation)
 
     def add_at(self, time, *animations, remove_animation=False):
         '''
