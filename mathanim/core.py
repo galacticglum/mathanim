@@ -360,10 +360,8 @@ class Scene:
                 frame_object.draw(context)
                 context.restore()
     
-            data = np.ndarray(shape=(*reversed(output_shape), 4), dtype=np.uint8, buffer=surface.get_data())
-
-            # Drop alpha values from frame data
-            data = data[:,:,:3]
+            # Convert image surface buffer to numpy array and drop alpha values from frame data
+            data = np.ndarray(shape=(*reversed(output_shape), 4), dtype=np.uint8, buffer=surface.get_data())[:,:,:3]
             video.write(data)
 
         video.release()
