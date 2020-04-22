@@ -7,4 +7,4 @@ with Scene() as scene:
         'position.y': actions.Ramp(100, 1000, 3),
     }))
 
-    scene.export('basic_example')
+    scene.export('basic_example.mp4')

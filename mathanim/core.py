@@ -1,8 +1,11 @@
+import cv2
 import tqdm
 import copy
 import cairo
+import numpy as np
 from colour import Color
 from pathlib import Path
+from mathanim.errors import PathError
 from intervaltree import IntervalTree
 from mathanim.objects import SceneObject
 from mathanim.utils import rgetattr, rsetattr, convert_colour
@@ -265,16 +268,19 @@ class SceneSettings:
         self.fps = fps
 
 # HDTV (1080p at 30 frames per second) scene preset.
-SceneSettings.HDTV = SceneSettings(1920, 1080, 30)
+SceneSettings.HDTV30 = SceneSettings(1920, 1080, 30)
+
+# HDTV (1080p at 60 frames per second) scene preset.
+SceneSettings.HDTV60 = SceneSettings(1920, 1080, 60)
 
 class Scene:
-    def __init__(self, settings=SceneSettings.HDTV, background_colour='black'):
+    def __init__(self, settings=SceneSettings.HDTV60, background_colour='black'):
         '''
         Initializes an instance of :class:`Scene`.
 
         :param settings:
             The :class:`SceneSettings` to use with this scene.
-            Defaults to 1080p at 30 fps (HDTV).
+            Defaults to 1080p at 60 fps (HDTV).
         :param background_colour:
             The background colour of the scene. Defaults to black.
 
@@ -283,6 +289,24 @@ class Scene:
         self.settings = settings
         self.timeline = Timeline(settings.fps)
         self.background_colour = convert_colour(background_colour)
+
+    @property
+    def background_colour(self):
+        '''
+        The background colour of the scene.
+
+        '''
+
+        return self.__background_colour
+    
+    @background_colour.setter
+    def background_colour(self, value):
+        '''
+        Sets the background colour of the scene.
+
+        '''
+
+        self.__background_colour = convert_colour(value)
 
     def __enter__(self):
         print('scene entered')
@@ -300,8 +324,8 @@ class Scene:
         render_context.set_source_rgb(*self.background_colour.rgb)
         render_context.paint()
 
-    def export(self, filepath, output_width=None, output_height=None, frame_format=cairo.FORMAT_ARGB32,
-               show_progress_bar=True):
+    def export(self, filepath, output_width=None, output_height=None,
+               show_progress_bar=True, overwrite=True, codec='mp4v'):
         '''
         Export the scene to a video file.
 
@@ -313,11 +337,15 @@ class Scene:
         :param output_height:
             The vertical resolution of the video, in pixels.
             Defaults to the height of the reference frame.
-        :param frame_format:
-            The colour format of a single frame. Defaults to ARGB32.
         :param show_progress_bar:
             Indicates whether a progress bar should be displayed while the video is rendered.
             Defaults to ``True``.
+        :param overwrite:
+            Indicates whether the export file should be overwritten in the case that it exists.
+            Defaults to ``True``.
+        :param codec:
+            The FourCC indicating the codec of the exported video. Defaults to mp4v encoding.
+            For a full list of video encoding codes, see https://www.fourcc.org/codecs.php.
 
         '''
 
@@ -327,15 +355,26 @@ class Scene:
         if output_height is None:
             output_height = self.settings.reference_height
 
-        surface = cairo.ImageSurface(frame_format, output_width, output_height)
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, output_width, output_height)
         context = cairo.Context(surface)
 
         # Normalize coordinate system to the reference frame
         context.scale(output_width / self.settings.reference_width, output_height / self.settings.reference_height)
 
-        destination_path = Path(filepath)
-        destination_path.mkdir(parents=True, exist_ok=True)
+        filepath = Path(filepath)
+        if filepath.exists():
+            if not filepath.is_file():
+                raise PathError('Tried to export scene to file but \'{}\' is not a valid filepath.'.format(filepath))
 
+            if not overwrite:
+                raise IOError('The file \'{}\' already exists and overwrite is disabled!'.format(filepath))
+
+            filepath.unlink()
+            
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+
+        output_shape = (output_width, output_height)
+        video = cv2.VideoWriter(str(filepath), cv2.VideoWriter_fourcc(*codec), self.settings.fps, output_shape)
         for snapshot in tqdm.tqdm(self.timeline.snapshots, disable=not show_progress_bar):
             self._clear(context)
             for frame_object in snapshot.objects:
@@ -343,5 +382,12 @@ class Scene:
                 context.save()
                 frame_object.draw(context)
                 context.restore()
-                
-            surface.write_to_png(destination_path / 'frame-{}.png'.format(str(snapshot.frame).zfill(3)))
+    
+            data = np.ndarray(shape=(*reversed(output_shape), 4), dtype=np.uint8, buffer=surface.get_data())
+
+            # Drop alpha values from frame data
+            data = data[:,:,:3]
+            video.write(data)
+
+        video.release()
+            # surface.write_to_png(destination_path / 'frame-{}.png'.format(str(snapshot.frame + 1).zfill(3)))

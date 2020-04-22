@@ -140,6 +140,42 @@ class Rectangle(SceneObject):
         
         return self.size.y
 
+    @property
+    def fill_colour(self):
+        '''
+        The fill colour of the rectangle.
+
+        '''
+
+        return self.__fill_colour
+    
+    @fill_colour.setter
+    def fill_colour(self, value):
+        '''
+        Sets the fill colour of the rectangle.
+
+        '''
+
+        self.__fill_colour = convert_colour(value)
+
+    @property
+    def stroke_colour(self):
+        '''
+        The stroke colour of the rectangle.
+
+        '''
+
+        return self.__stroke_colour
+    
+    @stroke_colour.setter
+    def stroke_colour(self, value):
+        '''
+        Sets the stroke colour of the rectangle.
+
+        '''
+
+        self.__stroke_colour = convert_colour(value)
+
     def draw(self, render_context):
         '''
         Draw this rectangle onto the specified :class:`cairo.Context`.
