@@ -227,27 +227,7 @@ class Scene:
             # to the upper bound. The actual end frame of the animation is end_frame - 1.
             end_frame = start_frame + round(animation.duration * self.settings.fps)
             self._animation_tree[start_frame:end_frame] = animation
-
-    def get(self, frame):
-        '''
-        Gets the timeline at the specified frame.
-
-        :returns:
-            A list of :class:`mathanim.objects.SceneObject` objects making up the frame.
-
-        '''
-
-        objects = []
-        for interval in self._animation_tree[frame]:
-            # Calculate the time by finding the percent completion of the animation
-            #
-            # We subtract one in the denominator since interval.end is actually offset by a single frame.
-            # This is due to the fact that the interval tree implementation excludes the upper bound.
-            t = (frame - interval.begin) / (interval.end - interval.begin - 1)
-            objects.append(interval.data.animate(interval.data.duration * t))
-
-        return FrameSnapshot(frame, objects)
-
+        
     @property
     def snapshots(self):
         '''
@@ -256,7 +236,16 @@ class Scene:
         '''
 
         for frame in range(self.total_frames):
-            yield self.get(frame)
+            objects = []
+            for interval in self._animation_tree[frame]:
+                # Calculate the time by finding the percent completion of the animation
+                #
+                # We subtract one in the denominator since interval.end is actually offset by a single frame.
+                # This is due to the fact that the interval tree implementation excludes the upper bound.
+                t = (frame - interval.begin) / (interval.end - interval.begin - 1)
+                objects.append(interval.data.animate(interval.data.duration * t))
+
+            yield FrameSnapshot(frame, objects)
 
     @property
     def total_frames(self):
