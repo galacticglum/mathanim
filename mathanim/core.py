@@ -390,4 +390,3 @@ class Scene:
             video.write(data)
 
         video.release()
-            # surface.write_to_png(destination_path / 'frame-{}.png'.format(str(snapshot.frame + 1).zfill(3)))
