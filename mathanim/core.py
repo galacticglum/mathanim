@@ -8,7 +8,7 @@ from pathlib import Path
 from mathanim.errors import PathError
 from intervaltree import IntervalTree
 from mathanim.objects import SceneObject
-from mathanim.utils import rgetattr, rsetattr, convert_colour, BidirectionalMap
+from mathanim.utils import rgetattr, rsetattr, convert_colour
 
 class Animation:
     '''
@@ -152,7 +152,7 @@ class SceneSettings:
 
     '''
     
-    def __init__(self, reference_width, reference_height, fps):
+    def __init__(self, reference_width, reference_height):
         '''
         Initializes an instance of :class:`SceneSettings`.
 
@@ -160,20 +160,85 @@ class SceneSettings:
             The width of the scene's reference frame.
         :param height:
             The height of the scene's reference frame.
-        :param fps:
-            The frames per second of the scene.
         
         '''
 
         self.reference_width = reference_width
         self.reference_height = reference_height
-        self.fps = fps
 
-# HDTV (1080p at 30 frames per second) scene preset.
-SceneSettings.HDTV30 = SceneSettings(1920, 1080, 30)
+# HDTV (1080p) scene preset.
+SceneSettings.HDTV = SceneSettings(1920, 1080)
 
-# HDTV (1080p at 60 frames per second) scene preset.
-SceneSettings.HDTV60 = SceneSettings(1920, 1080, 60)
+class Trigger:
+    '''
+    Triggers are events that are raised at a certain point in time.
+    They are added to the timeline to control data flow outside of animation.
+
+    '''
+
+    def __init__(self, time, func, *func_args, frame_delay=0):
+        '''
+        Initializes an instance of :class:`Trigger`.
+
+        :param time:
+            The time, in seconds, that the trigger should be raised.
+        :param func:
+            The function that should be executed when the trigger is raised.
+            
+            It has a single parameter: a dictionary of object ids to object values 
+            that can be manipulated.
+        :param func_args:
+            Additional positional arguments that are passed to the execution function.
+        :param frame_delay:
+            The number of frames to delay the trigger by. Defaults to 0.
+
+        '''
+
+        self.time = time
+        self.frame_delay = frame_delay
+        self._func = func
+        self._func_args = func_args
+
+    def call(self, objects):
+        '''
+        Raise this trigger.
+
+        '''
+
+        self._func(objects, *self._func_args)
+
+class RemoveTrigger(Trigger):
+    '''
+    A trigger that removes an object from the timeline.
+
+    '''
+
+    def __init__(self, time, scene_object, frame_delay=0):
+        '''
+        Initializes an instance of :class:`RemoveTrigger`.
+
+        :param time:
+            The time, in seconds, that the object should be removed at.
+        :param scene_object:
+            The object that should be removed.
+        :param frame_delay:
+            The number of frames to delay the trigger by. Defaults to 0.
+
+        '''
+
+        super().__init__(time, RemoveTrigger._remove_func, scene_object, frame_delay=frame_delay)
+
+    @staticmethod
+    def _remove_func(objects, scene_object):
+        '''
+        Scene object removal function.
+
+        '''
+
+        object_id = id(scene_object)
+        if object_id not in objects: return
+        
+        del objects[object_id]
 
 class Scene:
     '''
@@ -181,7 +246,68 @@ class Scene:
 
     '''
 
-    def __init__(self, settings=SceneSettings.HDTV60, background_colour='black'):
+    class TimelineItem:
+        '''
+        An item in the timeline.
+        Each item has a start and an end, along with an associated object.
+        
+        '''
+
+        def __init__(self, start, end, scene_object, animation=None):
+            '''
+            Initializes an instance of :class:`TimelineItem`.
+
+            :param start:
+                The time, in seconds, when the object appears in the scene.
+                A value of ``None`` means that this item starts at the beginning of the timeline.
+            :param end:
+                The time, in seconds, when the object disappears from the scene.
+                A value of ``None`` means that this item ends at the end of the timeline.
+            :param scene_object:
+                The scene object to display.
+            :param animation:
+                The animation associated with the scene object. Defaults to ``None``.
+            
+            '''
+
+            self.start = start
+            self.end = end
+            self.scene_object = scene_object
+            self.animation = animation
+
+        @property
+        def start(self):
+            '''
+            The start time of the item, in seconds.
+
+            '''
+
+            return self.__start
+
+        @start.setter
+        def start(self, value):
+            '''
+            Sets the start time of the item, in seconds.
+            A value of ``None`` means that this item starts at the beginning of the timeline.
+
+            '''
+
+            self.__start = value if value is not None else 0
+
+        @property
+        def duration(self):
+            '''
+            Gets the duration of this item, in seconds.
+            
+            :returns:
+                The duration, in seconds, or ``None`` if the item has no end time.
+
+            '''
+
+            if self.end is None: return None
+            return self.end - self.start
+
+    def __init__(self, settings=SceneSettings.HDTV, background_colour='black'):
         '''
         Initializes an instance of :class:`Scene`.
 
@@ -196,11 +322,8 @@ class Scene:
         self.settings = settings
         self.background_colour = convert_colour(background_colour)
 
-        self._animation_tree = IntervalTree()
-
-        # Maps objects to a unique identifier. We use a bidirectional map 
-        # si that we can lookup objects by value AND by id).
-        self._object_ids = BidirectionalMap()
+        self._items = []
+        self._triggers = []
 
     def add(self, *animations, padding=0):
         '''
@@ -217,75 +340,122 @@ class Scene:
 
         '''
 
-        start_frame = self._animation_tree.end() + padding * self.settings.fps
-        self.add_at(start_frame, *animations, seconds=False)
+        self.add_at(self.total_seconds + padding, *animations)
 
-    def add_at(self, time, *animations, seconds=True):
+    def add_at(self, time, *animations, remove_animation=False):
         '''
         Places the animations onto the timeline at the specified time.
 
         :note:
             If multiple animations are given, they will be placed in parallel.
-            This will place all of the animations starting at the same time.
+            This will place all of the animations starting at the same time.            
 
         :param time:
             The time, in seconds, where the animations should be placed.
         :param *animations:
             The :class:`Animation` objects to place.
-        :param seconds:
-            Indicates whether the time is given in seconds or frames. If ``True``, the time is in seconds;
-            otherwise, it is in frames. Defaults to ``True.
+        :param remove_animation:
+            Indicates whether the animated object should be removed after its animation is complete.
+            Defaults to ``False``.
 
         '''
 
-        start_frame = time
-        if seconds:
-            start_frame *= self.settings.fps
-
         for animation in animations:
-            # The interval tree library does not include the upper bound so we need to add a frame
-            # to the upper bound. The actual end frame of the animation is end_frame - 1.
-            end_frame = start_frame + round(animation.duration * self.settings.fps)
-            self._animation_tree[start_frame:end_frame] = animation
-        
-    def render(self):
+            end_time = time + animation.duration
+            if remove_animation:
+                # Delay the removal by one frame so that it doesn't remove until the animation is actually done.
+                # Since triggers are processed before the frame is returned, if a remove trigger occurs on frame N,
+                # it will not appear on frame N...
+                self.add_trigger(RemoveTrigger(end_time, animation.initial_object, frame_delay=1))
+
+            self._items.append(Scene.TimelineItem(time, end_time, animation.initial_object, animation))
+    
+    def add_trigger(self, *triggers):
+        '''
+        Adds the triggers onto the timeline.
+
+        :param *triggers:
+            The :class:`Trigger` objects to place.
+
+        '''
+
+        self._triggers.append(*triggers)
+
+    def render(self, fps):
         '''
         Renders this scene.
         
+        :parma fps:
+            The frames per second that should be used in rendering.
         :returns:
             Yields each frame in order as a :class:`FrameSnapshot`.
 
         '''
 
-        for frame in range(self.total_frames):
-            objects = []
-            for interval in self._animation_tree[frame]:
-                # Calculate the time by finding the percent completion of the animation
-                #
-                # We subtract one in the denominator since interval.end is actually offset by a single frame.
-                # This is due to the fact that the interval tree implementation excludes the upper bound.
-                t = (frame - interval.begin) / (interval.end - interval.begin - 1)
-                objects.append(interval.data.animate(interval.data.duration * t))
+        total_seconds = self.total_seconds 
+        total_frames = round(total_seconds * fps)
 
-            yield FrameSnapshot(frame, objects)
+        # Build the item tree (these are intervals representing timeline itemss)
+        item_tree = IntervalTree()
+        for item in self._items:
+            start_frame = round(item.start * fps)
+            end_frame = round((item.end or total_seconds) * fps)
+            item_tree[start_frame:end_frame] = item
 
-    @property
-    def total_frames(self):
-        '''
-        Gets the duration of this timeline, in frames.
+        # Map triggers to frames
+        triggers = {}
+        for trigger in self._triggers:
+            frame = round(trigger.time * fps) + trigger.frame_delay
+            if frame not in triggers:
+                triggers[frame] = []
 
-        '''
+            triggers[frame].append(trigger)
+        
+        objects = {}
+        for frame in range(total_frames):
+            if frame in triggers:
+                for trigger in triggers[frame]:
+                    trigger.call(objects)
 
-        return self._animation_tree.end()
-    
+            for interval in item_tree[frame]:
+                item = interval.data
+                if item.scene_object is None: continue
+
+                scene_object = None
+                object_id = id(item.scene_object)
+                if object_id not in objects:
+                    scene_object = copy.deepcopy(item.scene_object)
+                    objects[object_id] = scene_object
+                else:
+                    scene_object = objects[object_id]
+
+                if item.animation is not None:
+                    # Calculate the time by finding the percent completion of the animation
+                    #
+                    # We subtract one in the denominator since interval.end is actually offset by a single frame.
+                    # This is due to the fact that the interval tree implementation excludes the upper bound.
+                    t = (frame - interval.begin) / (interval.end - interval.begin - 1)
+                    item.animation.animate(interval.data.duration * t, scene_object)
+
+            yield FrameSnapshot(frame, iter(objects.values()))
+
     @property
     def total_seconds(self):
         '''
-        Gets the duration of this timeline, in seconds.
+        Gets the duration of this scene, in seconds.
+
+        :note:
+            If there are many objects in the scene, this can be slow since it
+            is a linear, O(n), search on all the items.
 
         '''
+        
+        if len(self._items) == 0: return 0
 
-        return self.total_frames / self.settings.fps
+        # The maximum end time is the total duration of the scene.
+        # We ignore end times that are None (i.e. they span the entire
+        # scene) by treating those as zero.
+        return max(self._items, key=lambda x: x.end or 0).end
 
     @property
     def background_colour(self):
@@ -322,7 +492,7 @@ class Scene:
         render_context.paint()
 
     def export(self, filepath, output_width=None, output_height=None,
-               show_progress_bar=True, overwrite=True, codec='mp4v'):
+               show_progress_bar=True, overwrite=True, codec='mp4v', fps=60):
         '''
         Export the scene to a video file.
 
@@ -343,6 +513,8 @@ class Scene:
         :param codec:
             The FourCC indicating the codec of the exported video. Defaults to mp4v encoding.
             For a full list of video encoding codes, see https://www.fourcc.org/codecs.php.
+        :param fps:
+            The frames per second of the exported video.
 
         '''
 
@@ -371,8 +543,8 @@ class Scene:
         filepath.parent.mkdir(parents=True, exist_ok=True)
 
         output_shape = (output_width, output_height)
-        video = cv2.VideoWriter(str(filepath), cv2.VideoWriter_fourcc(*codec), self.settings.fps, output_shape)
-        for snapshot in tqdm.tqdm(self.render(), disable=not show_progress_bar):
+        video = cv2.VideoWriter(str(filepath), cv2.VideoWriter_fourcc(*codec), fps, output_shape)
+        for snapshot in tqdm.tqdm(self.render(fps), disable=not show_progress_bar):
             self._clear(context)
             for frame_object in snapshot.objects:
                 # Isolate transformations using save/restore.
