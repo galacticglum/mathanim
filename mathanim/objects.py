@@ -25,10 +25,46 @@ class SceneObject(ABC):
 
         '''
 
-        self.position = Vector2() if position is None else convert_vector2(position) 
+        self.position = position
         self.rotation = rotation
-        self.scale =  Vector2(1, 1) if scale is None else convert_vector2(scale)
+        self.scale =  scale
         self.opacity = opacity
+
+    @property
+    def position(self):
+        '''
+        Gets the position of the object in the scene, given as coordiantes in the scene's reference frame.
+
+        '''
+
+        return self.__position
+
+    @position.setter
+    def position(self, value):
+        '''
+        Sets the position of the object in the scene.
+
+        '''
+
+        self.__position = Vector2() if value is None else convert_vector2(value)
+
+    @property
+    def scale(self):
+        '''
+        Gets the scale of the object.
+
+        '''
+
+        return self.__scale
+
+    @scale.setter
+    def scale(self, value):
+        '''
+        Sets the scale of the object.
+
+        '''
+
+        self.__scale = Vector2(1, 1) if value is None else convert_vector2(value)
 
     @abstractmethod
     def draw(self, render_context):

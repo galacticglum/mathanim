@@ -5,3 +5,11 @@ class PathError(Exception):
     '''
 
     pass
+
+class ArgumentError(Exception):
+    '''
+    Raised when an argument has an invalid value.
+
+    '''
+
+    pass
