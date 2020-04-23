@@ -1,7 +1,7 @@
 import math
 from colour import Color
 from abc import ABC, abstractmethod
-from mathanim.utils import Vector2, convert_colour
+from mathanim.utils import Vector2, convert_colour, convert_vector2
 
 class SceneObject(ABC):
     '''
@@ -25,9 +25,9 @@ class SceneObject(ABC):
 
         '''
 
-        self.position = position if position is not None else Vector2()
+        self.position = Vector2() if position is None else convert_vector2(position) 
         self.rotation = rotation
-        self.scale = scale if scale is not None else Vector2(1, 1)
+        self.scale =  Vector2(1, 1) if scale is None else convert_vector2(scale)
         self.opacity = opacity
 
     @abstractmethod

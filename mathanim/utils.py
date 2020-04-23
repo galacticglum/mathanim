@@ -34,14 +34,28 @@ def rsetattr(obj, name, value):
     pre, _, post = name.rpartition('.')
     return setattr(rgetattr(obj, pre) if pre else obj, post, value)
 
-def convert_colour(value):
+def convert_colour(value, keep_none=True):
     '''
     Converts a value to a :class:`colour.Color` object.
 
+    :param keep_none:
+        Indicates whether a ``None`` value should be perserved.
+        Defaults to ``True``, meaning that ``None`` values are not converted to a :class:`colour.Color`.
+
     '''
 
+    if keep_none and value is None: return None
     if isinstance(value, Color): return value
     return Color(value)
+
+def convert_vector2(value):
+    '''
+    Converts a value to a :class:`Vector2` object.
+
+    '''
+
+    if isinstance(value, Vector2): return value
+    return Vector2(value)
 
 class Vector2:
     '''
