@@ -76,18 +76,161 @@ class SceneObject(ABC):
 
         '''
 
+        # Implemented in subclasses
         pass
 
-class Rectangle(SceneObject):
+class Shape(SceneObject):
+    '''
+    The base class for all primitive shape objects.
+
+    '''
+
+    def __init__(self, position=None, rotation=0, scale=None, fill_colour='white', 
+                 fill_opacity=1, border_radius=0, stroke_colour=None, stroke_width=1,
+                 stroke_opacity=1, opacity=1):
+        '''
+        Initializes an instance of :class:`Shape`.
+
+        :param position:
+            The position of the centre of the shape given as coordiantes in the scene's 
+            reference frame. Defaults to the zero vector (top-left corner of the screen).
+        :param rotation:
+            The rotation of the shape (about its centre), in radians. Defaults to 0.
+        :param scale:
+            The scale of the shape. Defaults to the unit vector.
+        :param fill_colour:
+            The fill colour of the shape. Defaults to white.
+            If set to ``None``, the shape has no fill.
+        :param fill_opacity:
+            The opacity of the shape fill. Defaults to 1 (fully opaque).
+        :param border_radius:
+            The radius of the corner curvature. Defaults to 0.
+        :param stroke_colour:
+            The colour of the shape's stroke. Defaults to ``None``, meaining that
+            there is no stroke.
+        :param stroke_width:
+            The width of the stroke from the edge of the shape.
+            An inner and outer stroke of this width is applied.
+
+            Defaults to 1.
+        :param stroke_opacity:
+            The opacity of the stroke. Defaults to 1 (fully opaque).
+        :param opacity:
+            The opacity of the shape. Defaults to 1 (fully opaque).
+            This affects the WHOLE shape (as opposed to fill or stroke opacity which
+            only affect their respective functions).
+
+        '''
+
+        super().__init__(position, rotation, scale, opacity)
+
+        self.size = Vector2()
+        self.fill_colour = convert_colour(fill_colour)
+        self.fill_opacity = fill_opacity
+        self.border_radius = border_radius
+        self.stroke_colour = convert_colour(stroke_colour)
+        self.stroke_width = stroke_width
+        self.stroke_opacity = stroke_opacity
+
+    @property
+    def size(self):
+        '''
+        The size of the shape.
+
+        :returns:
+            A two-dimensional vector whose horizontal component is the width
+            and vertical component is the height of the shape's bounds.
+
+        '''
+
+        return self.__size
+
+    @size.setter
+    def size(self, value):
+        '''
+        Sets the size of the shape.
+
+        :param value:
+            A :class:`mathanim.utils.Vector2` whose x and y components represent
+            the width and height of the shape respectively.
+
+        '''
+
+        self.__size = value
+        self.__real_size = value * self.scale
+
+    @property
+    def real_size(self):
+        '''
+        Gets the actual size of the shape in the scene (including scale of the object).
+
+        '''
+
+        return self.__real_size
+
+    @property
+    def width(self):
+        '''
+        The width of the shape.
+
+        '''
+        
+        return self.size.x
+
+    @property
+    def height(self):
+        '''
+        The height of the shape.
+
+        '''
+        
+        return self.size.y
+
+    @property
+    def fill_colour(self):
+        '''
+        The fill colour of the shape.
+
+        '''
+
+        return self.__fill_colour
+    
+    @fill_colour.setter
+    def fill_colour(self, value):
+        '''
+        Sets the fill colour of the shape.
+
+        '''
+
+        self.__fill_colour = convert_colour(value)
+
+    @property
+    def stroke_colour(self):
+        '''
+        The stroke colour of the shape.
+
+        '''
+
+        return self.__stroke_colour
+    
+    @stroke_colour.setter
+    def stroke_colour(self, value):
+        '''
+        Sets the stroke colour of the shape.
+
+        '''
+
+        self.__stroke_colour = convert_colour(value)
+
+class Rectangle(Shape):
     '''
     A rectangle shape.
 
     '''
 
-    def __init__(self, width=1, height=1, position=None, rotation=0, 
-                scale=None, fill_colour='white', fill_opacity=1,
-                border_radius=0, stroke_colour=None, stroke_width=1,
-                stroke_opacity=1, opacity=1):
+    def __init__(self, width=1, height=1, position=None, rotation=0, scale=None, 
+                 fill_colour='white', fill_opacity=1, border_radius=0, stroke_colour=None, 
+                 stroke_width=1, stroke_opacity=1, opacity=1):
         '''
         Initializes an instance of :class:`Rectangle`.
 
@@ -125,92 +268,10 @@ class Rectangle(SceneObject):
 
         '''
 
-        super().__init__(position, rotation, scale, opacity)
-
+        super().__init__(position, rotation, scale, fill_colour, fill_opacity, border_radius, 
+                         stroke_colour, stroke_width, stroke_opacity, opacity)
+                        
         self.size = Vector2(width, height)
-        self.fill_colour = convert_colour(fill_colour)
-        self.fill_opacity = fill_opacity
-        self.border_radius = border_radius
-        self.stroke_colour = convert_colour(stroke_colour)
-        self.stroke_width = stroke_width
-        self.stroke_opacity = stroke_opacity
-
-    @property
-    def size(self):
-        '''
-        The size of the rectangle as a two-dimensional vector.
-
-        '''
-
-        return self.__size
-
-    @size.setter
-    def size(self, value):
-        '''
-        Sets the size of the rectangle.
-
-        :param value:
-            A :class:`mathanim.utils.Vector2` whose x and y components represent
-            the width and height of the rectangle respectively.
-
-        '''
-
-        self.__size = value
-        self.__real_size = value * self.scale
-
-    @property
-    def width(self):
-        '''
-        The width of the rectangle.
-
-        '''
-        
-        return self.size.x
-
-    @property
-    def height(self):
-        '''
-        The height of the rectangle.
-
-        '''
-        
-        return self.size.y
-
-    @property
-    def fill_colour(self):
-        '''
-        The fill colour of the rectangle.
-
-        '''
-
-        return self.__fill_colour
-    
-    @fill_colour.setter
-    def fill_colour(self, value):
-        '''
-        Sets the fill colour of the rectangle.
-
-        '''
-
-        self.__fill_colour = convert_colour(value)
-
-    @property
-    def stroke_colour(self):
-        '''
-        The stroke colour of the rectangle.
-
-        '''
-
-        return self.__stroke_colour
-    
-    @stroke_colour.setter
-    def stroke_colour(self, value):
-        '''
-        Sets the stroke colour of the rectangle.
-
-        '''
-
-        self.__stroke_colour = convert_colour(value)
 
     def draw(self, render_context):
         '''
@@ -221,7 +282,7 @@ class Rectangle(SceneObject):
 
         '''
 
-        half_size = self.__real_size / 2
+        half_size = self.real_size / 2
         centre = self.position - half_size
 
         # Translate to the centre of the rectangle.
